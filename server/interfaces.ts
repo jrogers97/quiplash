@@ -1,17 +1,17 @@
 interface IRoom {
-    id: string
-    users: User[]
-    gamePrompts: GamePrompt[]
-    points: Points
-    pointsValue: number
-    bonusValue: number
-    addUser: ({id, name, isHost}: User) => {user?: User, error?: string}
-    removeUser: (id: string) => User | undefined
-    getHost: () => User | undefined
-    getNonHostUsers: () => User[]
-    setupGamePrompts: () => GamePrompt[]
-    handleSubmitAnswer: ({ promptId, answer, name }: PromptAnswer) => SocketSubmitAnswerResult
-    handlePlayerVote: ({ prompt, voterName, promptAuthor }: PromptVote) => GamePrompt | null
+    id: string,
+    users: User[],
+    gamePrompts: GamePrompt[],
+    points: Points,
+    pointsValue: number,
+    bonusValue: number,
+    addUser: ({id, name, isHost}: User) => {user?: User, error?: string},
+    removeUser: (id: string) => User | undefined,
+    getHost: () => User | undefined,
+    getNonHostUsers: () => User[],
+    setupGamePrompts: () => GamePrompt[],
+    handleSubmitAnswer: ({ promptId, answer, name }: PromptAnswer) => SocketSubmitAnswerResult,
+    handlePlayerVote: ({ prompt, voterName, promptAuthor }: PromptVote) => GamePrompt | null,
     updatePoints: (prompt: GamePrompt) => void
 }
 

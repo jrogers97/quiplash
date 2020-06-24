@@ -1,32 +1,43 @@
 import React, { useContext, useState, useEffect } from 'react';
 import UserContext from '../../context/userContext';
 import styled from 'styled-components';
+import { Prompt } from '../common/interfaces';
 
-const PlayerPromptVoting = ({ prompt }) => {
+interface PlayerPromptVotingProps {
+    prompt: Prompt
+}
+
+interface PromptVotingDisplayProps {
+    prompt: Prompt,
+    submitVote: (author: string) => void
+}
+
+const PlayerPromptVoting = ({ prompt }: PlayerPromptVotingProps) => {
     const { socket, name, room } = useContext(UserContext); 
     const [playerAnsweredPrompt, setPlayerAnsweredPrompt] = useState(false);
     const [playerVoted, setPlayerVoted] = useState(false);
 
     useEffect(() => {
         setPlayerAnsweredPrompt(
-            prompt 
-            && prompt.users 
-            && prompt.users.length 
+            !!prompt 
+            && !!prompt.users 
+            && !!prompt.users.length 
             && prompt.users.includes(name)
         )
         setPlayerVoted(false);
     }, [prompt, name]);
 
-    const submitVote = (promptAuthor) => {
-        socket.emit('playerPromptVote', {
-            prompt,
-            room,
-            voterName: name,
-            promptAuthor
-        }, () => setPlayerVoted(true));
+    const submitVote = (promptAuthor: string) => {
+        if (socket) {
+            socket.emit('playerPromptVote', {
+                prompt,
+                room,
+                voterName: name,
+                promptAuthor
+            }, () => setPlayerVoted(true));
+        }
     };
 
-    console.log('prompt: ', prompt);
     return (
         <StyledPlayerPromptVoting> 
             {playerAnsweredPrompt || playerVoted
@@ -37,7 +48,7 @@ const PlayerPromptVoting = ({ prompt }) => {
     );
 };
 
-const PromptVotingDisplay = ({ prompt, submitVote }) => {
+const PromptVotingDisplay = ({ prompt, submitVote }: PromptVotingDisplayProps) => {
     return (
         <StyledPromptVotingDisplay>
             <Text>{prompt.prompt}</Text>
@@ -81,6 +92,7 @@ const Button = styled.button`
 const Text = styled.p`
     font-size: 20px;
     padding: 30px 10px;
+    text-align: center;
 `;
 
 export default PlayerPromptVoting;

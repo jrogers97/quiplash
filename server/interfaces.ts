@@ -1,15 +1,19 @@
 interface IRoom {
     id: string,
     users: User[],
-    gamePrompts: GamePrompt[],
+    gamePrompts: {[round: number]: GamePrompt[]},
+    gameStarted: boolean,
+    round: number,
     points: Points,
     pointsValue: number,
     bonusValue: number,
-    addUser: ({id, name, isHost}: User) => {user?: User, error?: string},
+    roundMultiplier: number,
+    addUser: ({id, name, isHost}: User) => User | undefined;
     removeUser: (id: string) => User | undefined,
     getHost: () => User | undefined,
     getNonHostUsers: () => User[],
-    setupGamePrompts: () => GamePrompt[],
+    setupGame: () => void,
+    getRoundPrompts: () => GamePrompt[] | undefined,
     handleSubmitAnswer: ({ promptId, answer, name }: PromptAnswer) => SocketSubmitAnswerResult,
     handlePlayerVote: ({ prompt, voterName, promptAuthor }: PromptVote) => GamePrompt | null,
     updatePoints: (prompt: GamePrompt) => void
@@ -18,12 +22,12 @@ interface IRoom {
 interface SocketJoinParams {
     name: string,
     room: string,
-    isHost: boolean
+    isHost?: boolean
 }
 
-interface SocketJoinResult {
-    user?: User,
-    error?: string
+interface SocketJoinError {
+    nameError: string,
+    roomError: string
 }
 
 interface SocketSubmitAnswerResult {
@@ -57,6 +61,10 @@ interface GamePrompt {
     votes: Votes
 }
 
+interface GamePrompts {
+    [round: number]: GamePrompt[]
+}
+
 interface PromptAnswer {
     promptId: number,
     answer: string, 
@@ -86,11 +94,12 @@ interface PromptVoteWithRoom {
 export {
     IRoom,
     SocketJoinParams,
-    SocketJoinResult,
+    SocketJoinError,
     SocketSubmitAnswerResult,
     User,
     Points,
     GamePrompt,
+    GamePrompts,
     PromptAnswer,
     PromptAnswerWithRoom,
     PromptVote,

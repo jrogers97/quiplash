@@ -1,17 +1,50 @@
 import React, { useState, useContext } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Redirect } from 'react-router-dom';
 import styled from 'styled-components';
 import UserContext from '../context/userContext';
+
+interface SocketError {
+    roomError?: string,
+    nameError?: string
+}
 
 const FrontDoor = () => {
     const [nameInput, setNameInput] = useState('');
     const [roomInput, setRoomInput] = useState('');
+    const [joinValidated, setJoinValidated] = useState(false);
+    const [joinError, setJoinError] = useState({room: '', name: ''});
     
-    const { setName, setRoom, setIsHost } = useContext(UserContext);
+    const { socket, setName, setRoom, setIsHost } = useContext(UserContext);
+
+    const validate = () => {
+        let newJoinError = {room: '', name: ''};
+        if (!nameInput || !roomInput) {
+            if (!nameInput) {
+                newJoinError.name = 'You must enter a valid name';
+            }
+            if (!roomInput) {
+                newJoinError.room = 'You must enter a valid room code';
+            }
+            setJoinError(newJoinError);
+        } else if (socket) {
+            socket.emit('validateRoomParams', {room: roomInput, name: nameInput}, 
+                ({ roomError, nameError }: SocketError) => {
+                    if (nameError) {
+                        newJoinError = {...newJoinError, name: nameError};
+                    } else if (roomError) {
+                        newJoinError = {...newJoinError, room: roomError};
+                    } else {
+                        setJoinValidated(true);
+                        return;
+                    }
+                    setJoinError(newJoinError);
+                })
+        }
+    };
 
     const bindNameAndRoom = () => {
         setName(nameInput);
-        setRoom(roomInput.toUpperCase());
+        setRoom(roomInput);
     }
 
     const setNewRoom = () => {
@@ -37,30 +70,31 @@ const FrontDoor = () => {
                     <Input 
                         type="text"
                         placeholder="Enter 4-letter code"
-                        maxLength="4"
-                        onChange={e => setRoomInput(e.target.value)} />
+                        maxLength={4}
+                        onChange={e => setRoomInput(e.target.value.toUpperCase())} />
+                    {joinError.room && <ErrorText>{joinError.room}</ErrorText>}
 
                     <InputHeader>Name</InputHeader>
                     <Input 
                         type="text"
                         placeholder="Enter your name"
-                        maxLength="12"
-                        onChange={e => setNameInput(e.target.value)} />
+                        maxLength={12}
+                        onChange={e => setNameInput(e.target.value.toUpperCase())} />
+                    {joinError.name && <ErrorText>{joinError.name}</ErrorText>}
                     
-                    <Button onClick={() => bindNameAndRoom()}>
-                        <StyledLink 
-                            onClick={e => (!nameInput || !roomInput) ? e.preventDefault() : null}
-                            to={`/lobby`}>
+                    <Button onClick={bindNameAndRoom}>
+                        <FakeLink onClick={validate} >
                             Join Game 
-                        </StyledLink>
+                        </FakeLink>
                     </Button>
+                    {joinValidated && <Redirect to={'/lobby'}/>}
 
                 </RoomSelectionSection>
 
                 <SectionPartition />
                 
                 <RoomSelectionSection>
-                    <Button onClick={() => setNewRoom()}> 
+                    <Button onClick={setNewRoom}> 
                         <StyledLink to={'/lobby'}>
                             Create New Game 
                         </StyledLink>
@@ -83,6 +117,7 @@ const StyledFrontDoor = styled.div`
 const RoomSelection = styled.div`
     display: flex;
     flex-direction: column;
+    min-width: 250px;
 `;
 
 const RoomSelectionSection = styled.div`
@@ -111,6 +146,11 @@ const Input = styled.input`
     padding: 10px;
 `;
 
+const ErrorText = styled.p`
+    color: #bb0000;
+    font-size: 13px;
+`;
+
 const Button = styled.button`
     width: 100%;
     font-size: 20px;
@@ -133,6 +173,10 @@ const StyledLink = styled(Link)`
     display: block;
     text-decoration: none;
     color: #000;
+    padding: 5px;
+`;
+
+const FakeLink = styled.div`
     padding: 5px;
 `;
 

@@ -1,43 +1,45 @@
 import React, { useState, useEffect, useContext } from 'react';
 import UserContext from '../../context/userContext';
 import styled from 'styled-components';
+import { Prompt } from '../common/interfaces';
 
 const NUM_PROMPTS = 2;
 
-const PlayerPromptInput = () => {
+const PlayerPromptInput: React.FC = () => {
     const { socket, name, room } = useContext(UserContext);
-    const [prompts, setPrompts] = useState([]);
-    const [answerInput, setAnswerInput] = useState(Array(NUM_PROMPTS).fill(''));
-    const [answerSubmitted, setAnswerSubmitted] = useState(Array(NUM_PROMPTS).fill(false));
+    const [prompts, setPrompts] = useState<Prompt[]>([]);
+    const [answerInput, setAnswerInput] = useState<string[]>(Array(NUM_PROMPTS).fill(''));
+    const [answerSubmitted, setAnswerSubmitted] = useState<boolean[]>(Array(NUM_PROMPTS).fill(false));
     
     useEffect(() => {
         // get prompts assigned to specific user
-        const parsePrompts = prompts => prompts.filter(prompt => prompt.users.includes(name));
+        const parsePrompts = (prompts: Prompt[]) => prompts.filter(prompt => prompt.users.includes(name));
 
         if (socket) {
-            socket.on('prompts', data => setPrompts(parsePrompts(data)));
+            socket.on('prompts', (data: Prompt[]) => setPrompts(parsePrompts(data)));
+            
+            // cleanup
+            return () => {
+                socket.off('prompts');
+            };
         }
         
-        // cleanup
-        return () => {
-            socket.off('prompts');
-        };
     }, [socket, name]);
 
-    const handleAnswerInput = (value, answerIdx) => {
+    const handleAnswerInput = (value: string, answerIdx: number) => {
         let answerInputCopy = answerInput.slice();
         answerInputCopy[answerIdx] = value;
         setAnswerInput(answerInputCopy);
     };
 
-    const handleAnswerSubmitted = (value, answerIdx) => {
+    const handleAnswerSubmitted = (value: boolean, answerIdx: number) => {
         let answerSubmittedCopy = answerSubmitted.slice();
         answerSubmittedCopy[answerIdx] = value;
         setAnswerSubmitted(answerSubmittedCopy);
     }
 
-    const submitAnswer = (answerIdx) => {
-        if (answerInput[answerIdx]) {
+    const submitAnswer = (answerIdx: number) => {
+        if (socket && answerInput[answerIdx]) {
             socket.emit('submitAnswer', {
                 promptId: prompts[answerIdx].id,
                 answer: answerInput[answerIdx],
@@ -49,7 +51,7 @@ const PlayerPromptInput = () => {
 
     return (
         <StyledPlayerPromptInput>
-            {/* <p>{name} {room}</p> */}
+            {!prompts.length && <HeaderText>Get ready to be funny! Good luck Ben!</HeaderText>}
             {prompts.map((prompt, idx) => 
                 <PromptWrapper key={idx}>
                     <PromptText>{prompt.prompt}</PromptText>
@@ -75,7 +77,7 @@ const StyledPlayerPromptInput = styled.div`
     width: 100%;
     display: flex;
     flex-direction: column;
-    align-items: center
+    align-items: center;
 `;
 
 const PromptWrapper = styled.div`
@@ -87,6 +89,12 @@ const PromptWrapper = styled.div`
     &:last-child {
         border-bottom: none;
     }
+`;
+
+const HeaderText = styled.p`
+    padding: 20px;
+    font-size: 22px;
+    text-align: center;
 `;
 
 const PromptText = styled.p`

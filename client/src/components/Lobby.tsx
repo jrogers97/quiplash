@@ -1,37 +1,44 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, Fragment } from 'react';
 import { Redirect } from 'react-router-dom';
 import UserContext from '../context/userContext';
 import styled from 'styled-components';
 import HostLobbyDisplay from './host/HostLobbyDisplay';
+import { User } from './common/interfaces';
+
+interface LobbyDisplayProps {
+    isHost: boolean, 
+    room: string, 
+    usersInLobby: string[], 
+    startGame: () => void
+}
 
 const Lobby = () => {
-    const [usersInLobby, setUsersInLobby] = useState([]);
+    const [usersInLobby, setUsersInLobby] = useState<string[]>([]);
     const [gameStarted, setGameStarted] = useState(false);
+    const [redirectHome, setRedirectHome] = useState(false);
     
     const { socket, name, room, isHost } = useContext(UserContext);
 
     // emit start game event from host
     const startGame = () => {
-        socket.emit('startGame', { room }, (error) => {
-            console.log(error);
-        });
+        if (socket) {
+            socket.emit('startGame', room);
+        }
     };
 
     useEffect(() => {
         if (socket) {
-            socket.emit('join', { name, room, isHost }, (error) => {
-                console.log(error);
-            });
+            socket.emit('join', { name, room, isHost }, () => setRedirectHome(true));
         }
     }, [socket, name, room, isHost]);
 
     useEffect(() => {
         if (socket) {
-            socket.on('userJoined', (users) => {
+            socket.on('userJoined', (users: User[]) => {
                 setUsersInLobby(users.map(user => user.name));
             }); 
     
-            socket.on('userLeft', ({name}) => {
+            socket.on('userLeft', ({name}: { name: string }) => {
                 setUsersInLobby(usersInLobby.filter(user => user !== name));
             });
 
@@ -50,17 +57,21 @@ const Lobby = () => {
     }, [usersInLobby, socket, isHost]);
 
     return (
-        gameStarted
-            ? <Redirect to="/play" />
-            : <LobbyDisplay 
-                isHost={isHost}
-                room={room}
-                usersInLobby={usersInLobby}
-                startGame={startGame} />
+        <Fragment>
+            {gameStarted
+                ? <Redirect to="/play" />
+                : <LobbyDisplay 
+                    isHost={isHost}
+                    room={room}
+                    usersInLobby={usersInLobby}
+                    startGame={startGame} />
+            }
+            {redirectHome && <Redirect to="/" />}
+        </Fragment>
     );
 };
 
-const LobbyDisplay = ({ isHost, room, usersInLobby, startGame }) => {
+const LobbyDisplay = ({ isHost, room, usersInLobby, startGame }: LobbyDisplayProps) => {
     return (
         isHost 
             ? <HostLobbyDisplay room={room} usersInLobby={usersInLobby} startGame={startGame} />
@@ -71,6 +82,7 @@ const LobbyDisplay = ({ isHost, room, usersInLobby, startGame }) => {
 const Text = styled.p`
     font-size: 24px;
     padding: 50px 10px;
+    text-align: center;
 `;
 
 export default Lobby;

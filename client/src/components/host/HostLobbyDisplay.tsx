@@ -2,9 +2,24 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 
+interface HostLobbyDisplayProps {
+    room: string,
+    usersInLobby: string[],
+    startGame: () => void
+}
+
+interface ConditionalLinkProps {
+    usersInLobby: string[],
+    children: React.ReactNode
+}
+
+interface StyledUserProps {
+    hasPlayer?: boolean
+}
+
 const MAX_PLAYERS = 8;
-const HostLobbyDisplay = ({ room, usersInLobby, startGame }) => {
-    const getPlayerByIdx = idx => usersInLobby && usersInLobby.length > idx ? usersInLobby[idx] : null;
+const HostLobbyDisplay = ({ room, usersInLobby, startGame }: HostLobbyDisplayProps) => {
+    const getPlayerByIdx = (idx: number) => usersInLobby && usersInLobby.length > idx ? usersInLobby[idx] : null;
     return (
         <StyledHostLobbyDisplay>
             <GameInfo>
@@ -20,7 +35,7 @@ const HostLobbyDisplay = ({ room, usersInLobby, startGame }) => {
             <UsersInfo>
                 <Users>
                     {Array(MAX_PLAYERS).fill(null).map((player,idx) => 
-                        <User 
+                        <User
                             key={idx}
                             hasPlayer={!!getPlayerByIdx(idx)}>
                             {getPlayerByIdx(idx) || "Join"}
@@ -33,7 +48,7 @@ const HostLobbyDisplay = ({ room, usersInLobby, startGame }) => {
 };
 
 // only redirect to gameplay if > 3 users in lobby
-const ConditionalLink = ({ usersInLobby, children }) => {
+const ConditionalLink = ({ usersInLobby, children }: ConditionalLinkProps) => {
     return usersInLobby && usersInLobby.length >= 3 
         ? <StyledLink to="/host">{children}</StyledLink>
         : <FakeLink>{children}</FakeLink>;
@@ -134,8 +149,8 @@ const Users = styled.div`
 /* arrange users in a circle */
 const User = styled.div`
     position: absolute;
-    background-color: #FFF;
-    opacity: ${props => props.hasPlayer ? "1" : "0.3"};
+    background: radial-gradient(circle at 40px 42px, #EEE, #FFF);
+    opacity: ${(props: StyledUserProps) => props.hasPlayer ? "1" : "0.3"};
     height: 60px;
     width: 60px;
     border-radius: 50%;

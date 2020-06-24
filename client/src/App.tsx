@@ -8,7 +8,7 @@ import HostGame from './components/host/HostGame';
 import PlayerGame from './components/player/PlayerGame';
 import UserProvider from './context/UserProvider';
 
-const App = () => {
+const App: React.FC = () => {
     return (
         <StyledApp>
             <UserProvider>

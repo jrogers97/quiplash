@@ -1,22 +1,32 @@
 import React, { useContext, useEffect, useState } from 'react';
 import UserContext from '../../context/userContext';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
+import { Prompt, Votes } from '../common/interfaces';
 
-const HostPromptVoting = ({ prompt }) => {
+interface HostPromptVotingProps {
+    prompt: Prompt
+}
+
+interface StyledAnswerProps {
+    rotateLeft?: boolean
+}
+
+const HostPromptVoting = ({ prompt }: HostPromptVotingProps) => {
     const { socket, room } = useContext(UserContext);
-    const [votes, setVotes] = useState({});
+    const [votes, setVotes] = useState<Votes>({});
 
     useEffect(() => {
         if (socket) {
             socket.on('playerVotes', setVotes);
             socket.emit('answersShown', { prompt, room });
+            
+            // cleanup
+            return () => {
+                socket.off('playerVotes');
+            };
         }
         // reset votes for new prompts
         setVotes({});
-        // cleanup
-        return () => {
-            socket.off('playerVotes');
-        };
     }, [socket, prompt, room]);
 
     return (
@@ -25,21 +35,48 @@ const HostPromptVoting = ({ prompt }) => {
             <Answers>
                 {Object.keys(prompt.answers).map((author,idx) => 
                     <Answer key={idx} rotateLeft={idx === 0}>
-                        <Author>{votes[author] ? author : ""}</Author>
+                        {votes[author] && <Author>{author}</Author>}
                         <AnswerText>{prompt.answers[author]}</AnswerText>
-                        <Votes>
+                        <StyledVotes>
                             {votes[author] && votes[author].map((voter, idx) => 
                                 <Vote key={idx}>
                                     {voter}
                                 </Vote>
                             )}
-                        </Votes>
+                        </StyledVotes>
                     </Answer>
                 )}
             </Answers>
         </StyledHostPromptVoting>
     );
 };
+
+const zoom = keyframes`
+    from {
+        transform: scale(0);
+    }
+    to {
+        transform: scale(1);
+    }
+`;
+
+const spin = keyframes`
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(1800deg);
+    }
+`;
+
+const fadein = keyframes`
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+`;
 
 const StyledHostPromptVoting = styled.div`
     height: 100%;
@@ -50,10 +87,12 @@ const StyledHostPromptVoting = styled.div`
     justify-content: center;
 `;
 
+
 const PromptText = styled.p`
     font-size: 30px;
     text-align: center;
     margin-bottom: 30px;
+    animation: ${zoom} 500ms ease-in-out;
 `;
 
 const Answers = styled.div`
@@ -63,8 +102,8 @@ const Answers = styled.div`
 const Answer = styled.div`
     display: flex;
     flex-direction: column;
+    justify-content: center;
     align-items: center;
-    /* justify-content: center; */
     height: 150px;
     width: 300px;
     background-color: white;
@@ -72,7 +111,7 @@ const Answer = styled.div`
     font-size: 22px;
     margin: 40px;
     box-shadow: 0px 2px 4px 0 rgba(0,0,0,0.5);
-    transform: ${props => props.rotateLeft ? "rotate(-5deg)" : "rotate(5deg)"};
+    transform: ${(props: StyledAnswerProps) => props.rotateLeft ? "rotate(-5deg)" : "rotate(5deg)"};
 `;
 
 const Author = styled.p`
@@ -80,13 +119,13 @@ const Author = styled.p`
     top: 5px;
     color: teal;
     font-size: 20px;
+    animation: ${spin} 500ms ease-in-out;
 `;
 
 const AnswerText = styled.p`
-    margin-top: 50px;
 `;
 
-const Votes = styled.div`
+const StyledVotes = styled.div`
     display: flex;
     flex-wrap: wrap;
     margin-top: 20px;
@@ -100,6 +139,7 @@ const Vote = styled.div`
     border: 1px solid #777;
     border-radius: 4px;
     font-size: 15px;
+    animation: ${fadein} 500ms ease-in-out;
 `;
 
 export default HostPromptVoting;

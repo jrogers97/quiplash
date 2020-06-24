@@ -20,22 +20,22 @@ import Room from './room';
 import {
     IRoom,
     SocketJoinParams,
+    SocketJoinError,
     PromptVoteWithRoom,
     PromptAnswerWithRoom,
     GamePrompt,
-    User,
     Points
 } from './interfaces';
 
-// maintain current games
+// maintain current rooms
 let rooms: {[key: string]: IRoom} = {};
+const NUM_ROUNDS = 3;
 
 io.on('connection', (socket) => {
     console.log('socket connected ', Object.keys(rooms).length);
-    socket.on('join', 
-        ({name, room, isHost}: SocketJoinParams, 
-         callback: (error: string | undefined) => void) => handleJoin(socket, {name, room, isHost}, callback));
+    socket.on('join', ({name, room, isHost}: SocketJoinParams, callback: () => void) => handleJoin(socket, {name, room, isHost}, callback));
     socket.on('disconnect', () => handleDisconnect(socket));
+    socket.on('validateRoomParams', handleValidateJoinParams);
     socket.on('startGame', handleStartGame);
     socket.on('submitAnswer', handleSubmitAnswer);
     socket.on('answersShown', handleAnswersShown);
@@ -44,21 +44,21 @@ io.on('connection', (socket) => {
     socket.on('fetchPoints', handleFetchPoints);
 });
 
-const handleJoin = (socket: SocketIO.Socket, { name, room, isHost }: SocketJoinParams, callback: (error: string | undefined) => void) => {
+const handleJoin = (socket: SocketIO.Socket, { name, room, isHost }: SocketJoinParams, errorCallback: () => void) => {
+    if (!room) {
+        return errorCallback();
+    }
+
     if (!rooms[room]) {
         rooms[room] = new Room(room);
     }
 
     const roomObj = rooms[room];
-    const { user, error} = rooms[room].addUser({id: socket.id, name, isHost});
-
-    if (error) {
-        return callback(error);
-    }
+    const user = rooms[room].addUser({id: socket.id, name, isHost: !!isHost});
 
     socket.join(roomObj.id, err => {
         if (err) {
-            return callback(error);
+            return errorCallback();
         } else {
             console.log(`${user ? user.name : "host"} joined ${roomObj.id}`);
             io.to(roomObj.id).emit('userJoined', roomObj.getNonHostUsers());
@@ -69,23 +69,59 @@ const handleJoin = (socket: SocketIO.Socket, { name, room, isHost }: SocketJoinP
 const handleDisconnect = (socket: SocketIO.Socket): void => {
     const roomName = Object.keys(rooms).find(room => rooms[room].users.some(user => user.id === socket.id));
     if (roomName) {
+        const roomHost = rooms[roomName].getHost();
         const user = rooms[roomName].removeUser(socket.id);
         if (user) {
             console.log(`${user.name || "host"} left ${roomName}`);
             io.to(roomName).emit('userLeft', { name: user.name });
+            if (roomHost?.id === user.id) {
+                delete rooms[roomName];
+                console.log(Object.keys(rooms));
+            }
         }
         socket.leave(roomName);
     }
 };
 
+const handleValidateJoinParams = ({ room, name }: SocketJoinParams, callback: (error: SocketJoinError) => void) => {
+    let error: SocketJoinError = {nameError: '', roomError: ''};
+    console.log('rooms: ', Object.keys(rooms), room);
+    if (!rooms[room]) {
+        error.roomError = "Room does not exist!";
+    } else if (rooms[room].gameStarted) {
+        error.roomError = "That room's game has already started!";
+    } else if (rooms[room].getNonHostUsers().map(user => user.name).indexOf(name) > -1) {
+        error.nameError = "That name is taken!";
+    }
+    callback(error);
+};
+
 // assign prompts to users and send to clients
-const handleStartGame = ({ room }: {room: string}) => {
+const handleStartGame = (room: string) => {
     if (rooms[room]) {
         io.to(room).emit('gameStarted');
-        const gamePrompts = rooms[room].setupGamePrompts();
-        console.log('prompts: ', gamePrompts);
-        io.to(room).emit('prompts', gamePrompts);
+        rooms[room].setupGame();
+        startRound(room);
     }
+};
+
+const startRound = (room: string) => {
+    const roomObj = rooms[room];
+    if (roomObj) {
+        console.log('starting round ', roomObj.round);
+        const roundPrompts = roomObj.getRoundPrompts();
+        if (roundPrompts) {
+            io.to(room).emit('interstitial', roomObj.round);
+            setTimeout(() => {
+                io.to(room).emit('startNewRound', roomObj.round);
+                io.to(room).emit('prompts', roundPrompts);
+            }, 3000);
+        }
+    }
+};
+
+const endGame = (room: string) => {
+    io.to(room).emit('endGame');
 };
 
 const handleSubmitAnswer = ({ promptId, answer, name, room }: PromptAnswerWithRoom, callback: () => void) => {
@@ -141,5 +177,20 @@ const handleFetchPoints = (room: string, callback: (points: Points) => void) => 
     if (rooms[room]) {
         const points = rooms[room].points;
         callback(points);
+        if (rooms[room].round >= NUM_ROUNDS) {
+            endGame(room);
+        } else {
+            setTimeout(() => {
+                // start new round after a few seconds of showing the standings
+                console.log('fetched points ', rooms[room].round);
+                if (rooms[room].round < NUM_ROUNDS) {
+                    rooms[room].round++;
+                    startRound(room);
+                } else {
+                    endGame(room);
+                    console.log('ending game');
+                }
+            }, 5000);
+        }
     }
 };

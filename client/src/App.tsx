@@ -2,8 +2,8 @@ import React from 'react';
 import { BrowserRouter as Router, Route, Switch} from 'react-router-dom';
 import styled from 'styled-components';
 
-import FrontDoor from './components/FrontDoor';
-import Lobby from './components/Lobby';
+import FrontDoor from './components/common/FrontDoor';
+import Lobby from './components/common/Lobby';
 import HostGame from './components/host/HostGame';
 import PlayerGame from './components/player/PlayerGame';
 import UserProvider from './context/UserProvider';

@@ -7,8 +7,8 @@ import HostPromptInput from './HostPromptInput';
 import Interstitial from './Interstitial';
 import PointStandings from './PointStandings';
 import styled from 'styled-components';
-import { Prompt } from '../common/interfaces';
-import { HostState, HostStateAction, HostStateActionType } from './interfaces';
+import { Prompt } from '../common/interfaces/interfaces';
+import { HostState, HostStateAction, HostStateActionType } from './interfaces/interfaces';
 
 interface PromptVotingDisplayProps {
     prompt: Prompt,
@@ -61,7 +61,6 @@ const HostGame = () => {
                 setShowInterstitial(false);
             });
 
-            // cleanup
             return () => {
                 socket.off('answers');
                 socket.off('nextPromptVoting');

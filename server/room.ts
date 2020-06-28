@@ -16,6 +16,7 @@ class Room implements IRoom {
     gameStarted: boolean;
     round: number;
     points: Points;
+    previousRoundPoints: Points;
     pointsValue: number;
     bonusValue: number;
     roundMultiplier: number;
@@ -27,13 +28,14 @@ class Room implements IRoom {
         this.gameStarted = false;
         this.round = 1;
         this.points = {};
+        this.previousRoundPoints = {};
         this.pointsValue = 100;
         this.bonusValue = 50;
         this.roundMultiplier = 1.25;
     }
     
     addUser({ id, name, isHost }: User): User | undefined {
-        const user = { id, name, isHost };
+        const user = { id, name, isHost, index: this.getNonHostUsers().length + 1 };
         this.users.push(user);
         if (!isHost) {
             this.points[name] = 0;

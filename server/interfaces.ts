@@ -5,6 +5,7 @@ interface IRoom {
     gameStarted: boolean,
     round: number,
     points: Points,
+    previousRoundPoints: Points,
     pointsValue: number,
     bonusValue: number,
     roundMultiplier: number,
@@ -38,7 +39,8 @@ interface SocketSubmitAnswerResult {
 interface User {
     id: string,
     name: string,
-    isHost: boolean
+    isHost: boolean,
+    index?: number
 }
 
 interface Points {
@@ -91,6 +93,11 @@ interface PromptVoteWithRoom {
     room: string
 }
 
+interface FetchPointsCallback {
+    fetchedPoints: Points,
+    fetchedPreviousPoints: Points
+}
+
 export {
     IRoom,
     SocketJoinParams,
@@ -103,5 +110,6 @@ export {
     PromptAnswer,
     PromptAnswerWithRoom,
     PromptVote,
-    PromptVoteWithRoom
+    PromptVoteWithRoom,
+    FetchPointsCallback
 }

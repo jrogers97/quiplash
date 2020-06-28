@@ -6,10 +6,17 @@ interface StyledUserProps {
     finished?: boolean
 }
 
+interface StyledTimerProps {
+    warn?: boolean
+}
+
+const TIMER_START_VALUE = 20;
+
 const HostPromptInput = () => {
     const { socket, room } = useContext(UserContext);
     const [usersInRoom, setUsersInRoom] = useState<string[]>([]);
     const [finishedUsers, setFinishedUsers] = useState<string[]>([]);
+    const [timerValue, setTimerValue] = useState(TIMER_START_VALUE);
 
     useEffect(() => {
         if (socket) {
@@ -21,15 +28,31 @@ const HostPromptInput = () => {
                 }
             });
 
-            // cleanup
             return () => {
                 socket.off('userAnsweredAllPrompts')
             };
         }
     }, [socket, room, finishedUsers]);
 
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (timerValue > 0) {
+                setTimerValue(prevValue => prevValue - 1);
+            } else {
+                if (socket) {
+                    socket.emit('submitTimerEnded', room);
+                }
+            }
+        }, 1000);
+
+        return () => {
+            clearTimeout(timer);
+        }
+    }, [timerValue, socket, room]);
+
     return (
         <StyledHostPromptInput>
+            <Timer warn={timerValue <= 10}>{timerValue}</Timer>
             <Header>Write your answers on your device now!</Header>
             <UsersPlatform>
                 <Users>
@@ -63,11 +86,27 @@ const StyledHostPromptInput = styled.div`
     justify-content: center;
 `;
 
+const Timer = styled.div`
+    font-size: ${(props: StyledTimerProps) => props.warn ? "25px" : "21px"};
+    color: ${(props: StyledTimerProps) => props.warn ? "#800000" : "#000"};
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    height: 40px;
+    width: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 7px;
+    border: 1px solid #000;
+    background-color: rgba(255,255,255,0.3);
+`;
+
 const Header = styled.p`
     font-weight: bold;
     font-size: 30px;
     line-height: 35px;
-    margin: 50px 30px;
+    margin: 70px 30px 50px 30px;
     text-align: center;
 `;
 

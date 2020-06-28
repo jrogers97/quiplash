@@ -24,7 +24,7 @@ import {
     PromptVoteWithRoom,
     PromptAnswerWithRoom,
     GamePrompt,
-    Points
+    FetchPointsCallback
 } from './interfaces';
 
 // maintain current rooms
@@ -35,11 +35,14 @@ io.on('connection', (socket) => {
     console.log('socket connected ', Object.keys(rooms).length);
     socket.on('join', ({name, room, isHost}: SocketJoinParams, callback: () => void) => handleJoin(socket, {name, room, isHost}, callback));
     socket.on('disconnect', () => handleDisconnect(socket));
+
     socket.on('validateRoomParams', handleValidateJoinParams);
     socket.on('startGame', handleStartGame);
     socket.on('submitAnswer', handleSubmitAnswer);
+    socket.on('submitTimerEnded', handleSubmitTimerEnded);
     socket.on('answersShown', handleAnswersShown);
     socket.on('playerPromptVote', handlePlayerVote);
+    socket.on('voteTimerEnded', handleVoteTimerEnded);
     socket.on('fetchUsersInRoom', handleFetchUsers);
     socket.on('fetchPoints', handleFetchPoints);
 });
@@ -145,6 +148,17 @@ const handleSubmitAnswer = ({ promptId, answer, name, room }: PromptAnswerWithRo
     }
 };
 
+const handleSubmitTimerEnded = (room: string) => {
+    const roomObj: Room = rooms[room];
+    if (roomObj) {
+        const host = roomObj.getHost();
+        if (host) {
+            const roundPrompts = roomObj.gamePrompts[roomObj.round];
+            io.to(host.id).emit('answers', roundPrompts);
+        }
+    }
+};
+
 const handleAnswersShown = ({ prompt, room }: {prompt: GamePrompt, room: string}) => {
     io.to(room).emit('startPlayerVote', prompt);
 };
@@ -166,6 +180,23 @@ const handlePlayerVote = ({ room, prompt, voterName, promptAuthor }: PromptVoteW
     }
 };
 
+const handleVoteTimerEnded = ({ room, promptId }: { room: string, promptId: number }) => {
+    const roomObj: Room = rooms[room];
+    if (roomObj) {
+        const host = roomObj.getHost();
+        if (host) {
+            const gamePrompts = roomObj.gamePrompts[roomObj.round];
+            const votedPrompt: GamePrompt | undefined = gamePrompts.find(prompt => prompt.id === promptId);
+            if (votedPrompt) {
+                io.to(host.id).emit('playerVotes', votedPrompt.votes);
+                setTimeout(() => {
+                    io.to(host.id).emit('nextPromptVoting');
+                }, 5000);
+            }
+        }
+    }
+};
+
 const handleFetchUsers = (room: string, callback: (users: string[]) => void) => {
     if (rooms[room]) {
         const usersInRoom = rooms[room].getNonHostUsers();
@@ -173,10 +204,11 @@ const handleFetchUsers = (room: string, callback: (users: string[]) => void) => 
     }
 }
 
-const handleFetchPoints = (room: string, callback: (points: Points) => void) => {
+const handleFetchPoints = (room: string, callback: (pointsObj: FetchPointsCallback) => void) => {
     if (rooms[room]) {
         const points = rooms[room].points;
-        callback(points);
+        const prevPoints = rooms[room].previousRoundPoints;
+        callback({ fetchedPoints: points, fetchedPreviousPoints: prevPoints });
         if (rooms[room].round >= NUM_ROUNDS) {
             endGame(room);
         } else {

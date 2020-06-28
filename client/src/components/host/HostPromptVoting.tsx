@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react';
 import UserContext from '../../context/userContext';
 import styled, { keyframes } from 'styled-components';
-import { Prompt, Votes } from '../common/interfaces';
+import { Prompt, Votes } from '../common/interfaces/interfaces';
 
 interface HostPromptVotingProps {
     prompt: Prompt
@@ -11,16 +11,26 @@ interface StyledAnswerProps {
     rotateLeft?: boolean
 }
 
+const TIMER_START_VALUE = 10;
+
 const HostPromptVoting = ({ prompt }: HostPromptVotingProps) => {
     const { socket, room } = useContext(UserContext);
     const [votes, setVotes] = useState<Votes>({});
+    const [timerValue, setTimerValue] = useState(TIMER_START_VALUE);
+
+    useEffect(() => {
+        setVotes({});
+        setTimerValue(TIMER_START_VALUE);
+    }, [prompt]);
 
     useEffect(() => {
         if (socket) {
-            socket.on('playerVotes', setVotes);
+            socket.on('playerVotes', (playerVotes: Votes) => {
+                setVotes(playerVotes);
+                setTimerValue(-1);
+            });
             socket.emit('answersShown', { prompt, room });
             
-            // cleanup
             return () => {
                 socket.off('playerVotes');
             };
@@ -29,14 +39,31 @@ const HostPromptVoting = ({ prompt }: HostPromptVotingProps) => {
         setVotes({});
     }, [socket, prompt, room]);
 
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (timerValue > 0) {
+                setTimerValue(prevValue => prevValue - 1);
+            } else if (timerValue === 0) {
+                if (socket) {
+                    socket.emit('voteTimerEnded', { room, promptId: prompt.id });
+                }
+            }
+        }, 1000);
+
+        return () => {
+            clearTimeout(timer);
+        }
+    }, [timerValue, socket, room, prompt]);
+
     return (
         <StyledHostPromptVoting>
+            {timerValue >= 0 && <Timer>{timerValue}</Timer>}
             <PromptText>{prompt.prompt}</PromptText>
             <Answers>
-                {Object.keys(prompt.answers).map((author,idx) => 
+                {prompt.users.map((author,idx) => 
                     <Answer key={idx} rotateLeft={idx === 0}>
                         {votes[author] && <Author>{author}</Author>}
-                        <AnswerText>{prompt.answers[author]}</AnswerText>
+                        <AnswerText>{prompt.answers[author] || ""}</AnswerText>
                         <StyledVotes>
                             {votes[author] && votes[author].map((voter, idx) => 
                                 <Vote key={idx}>
@@ -87,6 +114,20 @@ const StyledHostPromptVoting = styled.div`
     justify-content: center;
 `;
 
+const Timer = styled.div`
+    font-size: 21px;
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    height: 40px;
+    width: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 7px;
+    border: 1px solid #000;
+    background-color: rgba(255,255,255,0.3);
+`;
 
 const PromptText = styled.p`
     font-size: 30px;

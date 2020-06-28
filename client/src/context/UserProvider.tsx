@@ -1,8 +1,8 @@
 import React, { useReducer, useEffect } from 'react';
 import UserContext from './userContext';
 import io from 'socket.io-client';
-import userReducer from './userReducer';
-import { UserProviderState, UserProviderAction, UserProviderActionType } from './interfaces';
+import userReducer from './reducers/userReducer';
+import { UserProviderState, UserProviderAction, UserProviderActionType } from './interfaces/interfaces';
 
 interface UserProviderProps {
     children: React.ReactNode

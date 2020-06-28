@@ -3,7 +3,7 @@ import {Redirect} from 'react-router-dom';
 import UserContext from '../../context/userContext';
 import PlayerPromptInput from './PlayerPromptInput';
 import PlayerPromptVoting from './PlayerPromptVoting';
-import { Prompt } from '../common/interfaces';
+import { Prompt } from '../common/interfaces/interfaces';
 
 const PlayerGame: React.FC = () => {
     const { socket, name, room, setRound } = useContext(UserContext);
@@ -30,7 +30,6 @@ const PlayerGame: React.FC = () => {
             });
         }
 
-        // cleanup
         return () => {
             if (socket) {
                 socket.off('startPlayerVote');

@@ -1,7 +1,7 @@
 import React, { useContext, useState, useEffect } from 'react';
 import UserContext from '../../context/userContext';
 import styled from 'styled-components';
-import { Prompt } from '../common/interfaces';
+import { Prompt } from '../common/interfaces/interfaces';
 
 interface PlayerPromptVotingProps {
     prompt: Prompt
@@ -52,9 +52,9 @@ const PromptVotingDisplay = ({ prompt, submitVote }: PromptVotingDisplayProps) =
     return (
         <StyledPromptVotingDisplay>
             <Text>{prompt.prompt}</Text>
-            {Object.keys(prompt.answers).map((user, idx) => 
+            {prompt.users.map((user, idx) => 
                 <Button key={idx} onClick={() => submitVote(user)}>
-                    {prompt.answers[user]}
+                    {prompt.answers[user] || ""}
                 </Button>
             )}
         </StyledPromptVotingDisplay>
@@ -75,10 +75,11 @@ const StyledPromptVotingDisplay = styled.div`
 
 const Button = styled.button`
     border: none;
+    min-height: 42px;
     border-radius: 4px;
     padding: 10px;
     margin: 10px;
-    background-color: white;
+    background-color: #FFF;
     font-size: 18px;
     box-shadow: 0 2px 2px 0 rgba(0,0,0,0.5);
     &:focus {

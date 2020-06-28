@@ -1,5 +1,5 @@
 import { createContext } from 'react';
-import { IUserContext } from './interfaces';
+import { IUserContext } from './interfaces/interfaces';
 
 const UserContext: React.Context<IUserContext> = createContext<IUserContext>({
     socket: null,

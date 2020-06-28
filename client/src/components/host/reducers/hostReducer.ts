@@ -1,4 +1,4 @@
-import { HostState, HostStateAction } from '../interfaces';
+import { HostState, HostStateAction } from '../interfaces/interfaces';
 
 export default (state: HostState, action: HostStateAction) => {
     switch(action.type) {

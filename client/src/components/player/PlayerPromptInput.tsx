@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import UserContext from '../../context/userContext';
 import styled from 'styled-components';
-import { Prompt } from '../common/interfaces';
+import { Prompt } from '../common/interfaces/interfaces';
 
 const NUM_PROMPTS = 2;
 
@@ -18,7 +18,6 @@ const PlayerPromptInput: React.FC = () => {
         if (socket) {
             socket.on('prompts', (data: Prompt[]) => setPrompts(parsePrompts(data)));
             
-            // cleanup
             return () => {
                 socket.off('prompts');
             };
@@ -51,7 +50,7 @@ const PlayerPromptInput: React.FC = () => {
 
     return (
         <StyledPlayerPromptInput>
-            {!prompts.length && <HeaderText>Get ready to be funny! Good luck Ben!</HeaderText>}
+            {!prompts.length && <HeaderText>Get ready to be funny!</HeaderText>}
             {prompts.map((prompt, idx) => 
                 <PromptWrapper key={idx}>
                     <PromptText>{prompt.prompt}</PromptText>
@@ -92,7 +91,7 @@ const PromptWrapper = styled.div`
 `;
 
 const HeaderText = styled.p`
-    padding: 20px;
+    padding: 40px 20px;
     font-size: 22px;
     text-align: center;
 `;
